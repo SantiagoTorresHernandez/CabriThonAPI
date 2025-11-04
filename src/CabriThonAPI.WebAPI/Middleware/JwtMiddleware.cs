@@ -5,7 +5,7 @@ using System.Security.Claims;
 namespace CabriThonAPI.WebAPI.Middleware;
 
 /// <summary>
-/// Middleware to extract clientId from JWT token
+/// Middleware to extract clientId from JWT token (Supabase Auth)
 /// </summary>
 public class JwtMiddleware
 {
@@ -35,14 +35,29 @@ public class JwtMiddleware
             var tokenHandler = new JwtSecurityTokenHandler();
             var jwtToken = tokenHandler.ReadJwtToken(token);
 
-            // Extract clientId from token claims
+            // Extract user info from Supabase token
+            // Supabase tokens have these claims:
+            // - "sub": user_id (UUID from auth.users)
+            // - "email": user's email
+            // - "role": user's role (usually "authenticated")
+            
+            // Option 1: Use sub (Supabase user ID) directly as clientId
+            var userId = jwtToken.Claims.FirstOrDefault(x => x.Type == "sub")?.Value;
+            
+            // Option 2: Check for custom clientId claim (if you add it in Supabase)
             var clientId = jwtToken.Claims.FirstOrDefault(x => x.Type == "clientId")?.Value
-                          ?? jwtToken.Claims.FirstOrDefault(x => x.Type == "sub")?.Value
-                          ?? jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+                          ?? jwtToken.Claims.FirstOrDefault(x => x.Type == "client_id")?.Value
+                          ?? userId;
+
+            var email = jwtToken.Claims.FirstOrDefault(x => x.Type == "email")?.Value;
+            var role = jwtToken.Claims.FirstOrDefault(x => x.Type == "role")?.Value;
 
             if (!string.IsNullOrEmpty(clientId))
             {
                 context.Items["ClientId"] = clientId;
+                context.Items["SupabaseUserId"] = userId;
+                context.Items["UserEmail"] = email;
+                context.Items["UserRole"] = role;
             }
         }
         catch

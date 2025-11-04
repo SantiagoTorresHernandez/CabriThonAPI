@@ -10,6 +10,7 @@ using CabriThonAPI.Infrastructure.Data;
 using CabriThonAPI.Infrastructure.Repositories;
 using CabriThonAPI.Infrastructure.Services;
 using CabriThonAPI.WebAPI.Middleware;
+using CabriThonAPI.WebAPI.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,11 +36,7 @@ var secretKey = jwtSettings["SecretKey"] ?? "YourSuperSecretKeyForDevelopmentPur
 var issuer = jwtSettings["Issuer"] ?? "CabriThonAPI";
 var audience = jwtSettings["Audience"] ?? "CabriThonClients";
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -52,25 +49,23 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = audience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
     };
+})
+.AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
+    ApiKeyAuthenticationOptions.DefaultScheme,
+    options => { });
 
-    // For development: allow API Keys as alternative authentication
-    options.Events = new JwtBearerEvents
+// Add authorization with policy that accepts either JWT or API Key
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("ApiKeyOrJwt", policy =>
     {
-        OnMessageReceived = context =>
-        {
-            var apiKey = context.Request.Headers["X-API-Key"].FirstOrDefault();
-            if (!string.IsNullOrEmpty(apiKey))
-            {
-                // In production, validate API key against database
-                // For now, accept any API key for development
-                context.HttpContext.Items["ClientId"] = apiKey;
-            }
-            return Task.CompletedTask;
-        }
-    };
+        policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, ApiKeyAuthenticationOptions.DefaultScheme);
+        policy.RequireAuthenticatedUser();
+    });
+    
+    // Set as default policy
+    options.DefaultPolicy = options.GetPolicy("ApiKeyOrJwt")!;
 });
-
-builder.Services.AddAuthorization();
 
 // Register Repositories
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
@@ -111,6 +106,15 @@ builder.Services.AddSwaggerGen(c =>
         Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\""
     });
 
+    // Add API Key Authentication to Swagger (for development/testing)
+    c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        Name = "X-API-Key",
+        Type = SecuritySchemeType.ApiKey,
+        In = ParameterLocation.Header,
+        Description = "API Key for development/testing. Example: \"test-client-123\""
+    });
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -120,6 +124,17 @@ builder.Services.AddSwaggerGen(c =>
                 {
                     Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        },
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "ApiKey"
                 }
             },
             Array.Empty<string>()
