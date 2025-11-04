@@ -1,0 +1,32 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=YOUR_SUPABASE_HOST;Database=postgres;Username=postgres;Password=YOUR_PASSWORD;SSL Mode=Require;Trust Server Certificate=true"
+  },
+  "JwtSettings": {
+    "SecretKey": "YOUR_JWT_SECRET_KEY_HERE_MUST_BE_AT_LEAST_64_CHARS",
+    "Issuer": "https://YOUR_SUPABASE_PROJECT.supabase.co/auth/v1",
+    "Audience": "authenticated",
+    "ExpirationMinutes": 60
+  },
+  "Supabase": {
+    "Url": "https://YOUR_SUPABASE_PROJECT.supabase.co",
+    "AnonKey": "YOUR_SUPABASE_ANON_KEY"
+  },
+  "GeminiAI": {
+    "ProjectId": "your-google-cloud-project-id",
+    "Location": "us-central1",
+    "ModelId": "gemini-1.5-flash"
+  },
+  "ExternalAPI": {
+    "BaseUrl": "https://api.repository1.com"
+  }
+}
+
