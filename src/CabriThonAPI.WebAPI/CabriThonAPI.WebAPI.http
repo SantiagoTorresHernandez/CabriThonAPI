@@ -1,0 +1,6 @@
+@CabriThonAPI.WebAPI_HostAddress = http://localhost:5272
+
+GET {{CabriThonAPI.WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
