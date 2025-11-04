@@ -16,13 +16,18 @@ public class MetricsService : IMetricsService
 
     public async Task<ImpactMetricResponse> GetPromotionImpactAsync(string clientId, int year)
     {
+        if (!long.TryParse(clientId, out var clientIdLong))
+        {
+            throw new ArgumentException("Invalid clientId format", nameof(clientId));
+        }
+
         var metrics = await _metricRepository.GetByClientIdAndYearAsync(
-            clientId, 
+            clientIdLong, 
             year, 
             MetricType.PromotionalSales);
 
         var totalBenefit = await _metricRepository.GetTotalBenefitAsync(
-            clientId, 
+            clientIdLong, 
             year, 
             MetricType.PromotionalSales);
 
@@ -47,13 +52,18 @@ public class MetricsService : IMetricsService
 
     public async Task<ImpactMetricResponse> GetOrderImpactAsync(string clientId, int year)
     {
+        if (!long.TryParse(clientId, out var clientIdLong))
+        {
+            throw new ArgumentException("Invalid clientId format", nameof(clientId));
+        }
+
         var metrics = await _metricRepository.GetByClientIdAndYearAsync(
-            clientId, 
+            clientIdLong, 
             year, 
             MetricType.StockoutPrevention);
 
         var totalBenefit = await _metricRepository.GetTotalBenefitAsync(
-            clientId, 
+            clientIdLong, 
             year, 
             MetricType.StockoutPrevention);
 

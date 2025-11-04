@@ -43,7 +43,7 @@ public class ExternalDataService : IExternalDataService
             {
                 new ProductDto 
                 { 
-                    ProductId = "PROD001", 
+                    ProductId = 1, 
                     Name = "Sample Product 1", 
                     Category = "Electronics", 
                     Price = 199.99m, 
@@ -51,7 +51,7 @@ public class ExternalDataService : IExternalDataService
                 },
                 new ProductDto 
                 { 
-                    ProductId = "PROD002", 
+                    ProductId = 2, 
                     Name = "Sample Product 2", 
                     Category = "Accessories", 
                     Price = 49.99m, 
@@ -80,7 +80,7 @@ public class ExternalDataService : IExternalDataService
             {
                 new StockDto 
                 { 
-                    ProductId = "PROD001", 
+                    ProductId = 1, 
                     ProductName = "Sample Product 1", 
                     Quantity = 25, 
                     ReorderPoint = 50,
@@ -88,7 +88,7 @@ public class ExternalDataService : IExternalDataService
                 },
                 new StockDto 
                 { 
-                    ProductId = "PROD002", 
+                    ProductId = 2, 
                     ProductName = "Sample Product 2", 
                     Quantity = 100, 
                     ReorderPoint = 30,
@@ -117,17 +117,17 @@ public class ExternalDataService : IExternalDataService
             {
                 new OrderHistoryDto 
                 { 
-                    OrderId = "ORD001", 
+                    OrderId = 1, 
                     OrderDate = DateTime.UtcNow.AddDays(-7),
-                    ProductId = "PROD001", 
+                    ProductId = 1, 
                     Quantity = 5, 
                     TotalAmount = 999.95m 
                 },
                 new OrderHistoryDto 
                 { 
-                    OrderId = "ORD002", 
+                    OrderId = 2, 
                     OrderDate = DateTime.UtcNow.AddDays(-14),
-                    ProductId = "PROD002", 
+                    ProductId = 2, 
                     Quantity = 10, 
                     TotalAmount = 499.90m 
                 }

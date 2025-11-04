@@ -8,12 +8,12 @@ namespace CabriThonAPI.Application.Services;
 
 public class SuggestionService : ISuggestionService
 {
-    private readonly IPromotionSuggestionRepository _promotionRepository;
-    private readonly IOrderSuggestionRepository _orderRepository;
+    private readonly IPromotionRepository _promotionRepository;
+    private readonly ISuggestedOrderRepository _orderRepository;
 
     public SuggestionService(
-        IPromotionSuggestionRepository promotionRepository,
-        IOrderSuggestionRepository orderRepository)
+        IPromotionRepository promotionRepository,
+        ISuggestedOrderRepository orderRepository)
     {
         _promotionRepository = promotionRepository;
         _orderRepository = orderRepository;
@@ -24,27 +24,28 @@ public class SuggestionService : ISuggestionService
         string? status, 
         int? limit)
     {
-        SuggestionStatus? statusEnum = null;
-        if (!string.IsNullOrEmpty(status))
+        if (!long.TryParse(clientId, out var clientIdLong))
         {
-            Enum.TryParse<SuggestionStatus>(status, true, out var parsedStatus);
-            statusEnum = parsedStatus;
+            throw new ArgumentException("Invalid clientId format", nameof(clientId));
         }
 
-        var promotions = await _promotionRepository.GetByClientIdAsync(clientId, statusEnum, limit);
+        var promotions = await _promotionRepository.GetByClientIdAsync(clientIdLong, status, limit);
 
         var dtos = promotions.Select(p => new PromotionSuggestionDto
         {
-            PromotionId = p.PromotionId.ToString(),
-            Status = p.Status.ToString(),
+            PromotionId = p.PromotionId,
+            PromotionCode = p.PromotionCode,
+            Status = p.Status,
+            Name = p.Name,
+            Description = p.Description,
             JustificationAI = p.JustificationAI,
             ExpectedIncreasePercent = p.ExpectedIncreasePercent,
-            Products = p.Products.Select(pp => new PromotionProductDto
+            Products = p.PromotionProducts.Select(pp => new PromotionProductDto
             {
                 ProductId = pp.ProductId,
-                ProductName = pp.ProductName,
-                DiscountPercent = pp.DiscountPercent,
-                Role = pp.Role
+                ProductName = pp.Product?.Name ?? string.Empty,
+                Quantity = pp.Quantity,
+                DiscountApplied = pp.DiscountApplied
             }).ToList(),
             CreatedAt = p.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         }).ToList();
@@ -60,29 +61,49 @@ public class SuggestionService : ISuggestionService
         string clientId, 
         string? status)
     {
-        SuggestionStatus? statusEnum = null;
-        if (!string.IsNullOrEmpty(status))
+        if (!long.TryParse(clientId, out var clientIdLong))
         {
-            Enum.TryParse<SuggestionStatus>(status, true, out var parsedStatus);
-            statusEnum = parsedStatus;
+            throw new ArgumentException("Invalid clientId format", nameof(clientId));
         }
 
-        var orders = await _orderRepository.GetByClientIdAsync(clientId, statusEnum);
+        int? statusInt = null;
+        if (!string.IsNullOrEmpty(status))
+        {
+            // Map status string to int: Draft=0, Approved=1, Rejected=2, Applied=3
+            statusInt = status.ToLower() switch
+            {
+                "draft" => 0,
+                "approved" => 1,
+                "rejected" => 2,
+                "applied" => 3,
+                _ => null
+            };
+        }
+
+        var orders = await _orderRepository.GetByClientIdAsync(clientIdLong, statusInt);
 
         var dtos = orders.Select(o => new OrderSuggestionDto
         {
-            SuggestedOrderId = o.SuggestedOrderId.ToString(),
-            Status = o.Status.ToString(),
-            TotalEstimatedCost = o.TotalEstimatedCost,
-            Items = o.Items.Select(i => new OrderItemDto
+            SuggestedOrderId = o.SuggestedOrderId,
+            Status = o.Status switch
+            {
+                0 => "Draft",
+                1 => "Approved",
+                2 => "Rejected",
+                3 => "Applied",
+                _ => "Unknown"
+            },
+            TotalEstimatedCost = o.SuggestedOrderItems.Sum(i => 
+                i.Product != null ? i.Product.Cost * i.Quantity : 0),
+            Items = o.SuggestedOrderItems.Select(i => new OrderItemDto
             {
                 ProductId = i.ProductId,
-                ProductName = i.ProductName,
-                SuggestedQuantity = i.SuggestedQuantity,
-                CurrentStock = i.CurrentStock,
-                ReorderPoint = i.ReorderPoint,
-                UnitCost = i.UnitCost,
-                Justification = i.Justification
+                ProductName = i.Product?.Name ?? string.Empty,
+                SuggestedQuantity = i.Quantity,
+                CurrentStock = 0, // Would need to join with inventory_client
+                ReorderPoint = 0, // Would need additional data
+                UnitCost = i.Product?.Cost ?? 0,
+                Justification = $"Suggested quantity: {i.Quantity}"
             }).ToList(),
             CreatedAt = o.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         }).ToList();
@@ -94,4 +115,3 @@ public class SuggestionService : ISuggestionService
         };
     }
 }
-

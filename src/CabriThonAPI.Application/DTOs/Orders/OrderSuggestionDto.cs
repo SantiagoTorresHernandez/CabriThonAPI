@@ -2,7 +2,7 @@ namespace CabriThonAPI.Application.DTOs.Orders;
 
 public class OrderSuggestionDto
 {
-    public string SuggestedOrderId { get; set; } = string.Empty;
+    public long SuggestedOrderId { get; set; }
     public string Status { get; set; } = string.Empty;
     public decimal TotalEstimatedCost { get; set; }
     public List<OrderItemDto> Items { get; set; } = new();
@@ -11,7 +11,7 @@ public class OrderSuggestionDto
 
 public class OrderItemDto
 {
-    public string ProductId { get; set; } = string.Empty;
+    public long ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public int SuggestedQuantity { get; set; }
     public int CurrentStock { get; set; }

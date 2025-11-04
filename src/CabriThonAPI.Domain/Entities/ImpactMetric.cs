@@ -2,11 +2,11 @@ namespace CabriThonAPI.Domain.Entities;
 
 /// <summary>
 /// Represents monthly impact metrics for business improvements
+/// This is a virtual entity used for analytics, not directly mapped to a table
 /// </summary>
-public class ImpactMetric : BaseEntity
+public class ImpactMetric
 {
-    public Guid MetricId { get; set; }
-    public string ClientId { get; set; } = string.Empty;
+    public long ClientId { get; set; }
     public int Year { get; set; }
     public int Month { get; set; }
     public MetricType Type { get; set; }

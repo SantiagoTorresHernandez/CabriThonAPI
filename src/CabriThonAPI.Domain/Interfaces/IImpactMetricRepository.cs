@@ -7,10 +7,7 @@ namespace CabriThonAPI.Domain.Interfaces;
 /// </summary>
 public interface IImpactMetricRepository
 {
-    Task<IEnumerable<ImpactMetric>> GetByClientIdAndYearAsync(string clientId, int year, MetricType? type = null);
-    Task<ImpactMetric?> GetByIdAsync(Guid metricId);
-    Task<ImpactMetric> AddAsync(ImpactMetric metric);
-    Task UpdateAsync(ImpactMetric metric);
-    Task<decimal> GetTotalBenefitAsync(string clientId, int year, MetricType type);
+    Task<IEnumerable<ImpactMetric>> GetByClientIdAndYearAsync(long clientId, int year, MetricType? type = null);
+    Task<decimal> GetTotalBenefitAsync(long clientId, int year, MetricType type);
 }
 

@@ -13,7 +13,7 @@ using CabriThonAPI.WebAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add Database Context
+// Add Database Context (PostgreSQL for Supabase)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -25,7 +25,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     }
     else
     {
-        options.UseSqlServer(connectionString);
+        options.UseNpgsql(connectionString);
     }
 });
 
@@ -73,8 +73,8 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 // Register Repositories
-builder.Services.AddScoped<IPromotionSuggestionRepository, PromotionSuggestionRepository>();
-builder.Services.AddScoped<IOrderSuggestionRepository, OrderSuggestionRepository>();
+builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
+builder.Services.AddScoped<ISuggestedOrderRepository, SuggestedOrderRepository>();
 builder.Services.AddScoped<IImpactMetricRepository, ImpactMetricRepository>();
 
 // Register Application Services

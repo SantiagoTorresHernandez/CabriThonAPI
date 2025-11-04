@@ -3,14 +3,14 @@ using CabriThonAPI.Domain.Entities;
 namespace CabriThonAPI.Domain.Interfaces;
 
 /// <summary>
-/// Repository interface for promotion suggestions
+/// Repository interface for promotions
 /// </summary>
-public interface IPromotionSuggestionRepository
+public interface IPromotionRepository
 {
-    Task<IEnumerable<PromotionSuggestion>> GetByClientIdAsync(string clientId, SuggestionStatus? status = null, int? limit = null);
-    Task<PromotionSuggestion?> GetByIdAsync(Guid promotionId);
-    Task<PromotionSuggestion> AddAsync(PromotionSuggestion promotion);
-    Task UpdateAsync(PromotionSuggestion promotion);
-    Task DeleteAsync(Guid promotionId);
+    Task<IEnumerable<Promotion>> GetByClientIdAsync(long clientId, string? status = null, int? limit = null);
+    Task<Promotion?> GetByIdAsync(long promotionId);
+    Task<Promotion> AddAsync(Promotion promotion);
+    Task UpdateAsync(Promotion promotion);
+    Task DeleteAsync(long promotionId);
 }
 

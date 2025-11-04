@@ -11,15 +11,15 @@ public class AIAgentService : IAIAgentService
     private readonly ILogger<AIAgentService> _logger;
     private readonly IGeminiAIService _geminiService;
     private readonly IExternalDataService _externalDataService;
-    private readonly IPromotionSuggestionRepository _promotionRepository;
-    private readonly IOrderSuggestionRepository _orderRepository;
+    private readonly IPromotionRepository _promotionRepository;
+    private readonly ISuggestedOrderRepository _orderRepository;
 
     public AIAgentService(
         ILogger<AIAgentService> logger,
         IGeminiAIService geminiService,
         IExternalDataService externalDataService,
-        IPromotionSuggestionRepository promotionRepository,
-        IOrderSuggestionRepository orderRepository)
+        IPromotionRepository promotionRepository,
+        ISuggestedOrderRepository orderRepository)
     {
         _logger = logger;
         _geminiService = geminiService;
@@ -34,7 +34,12 @@ public class AIAgentService : IAIAgentService
         {
             _logger.LogInformation("Starting Promotion Agent for client {ClientId}", clientId);
 
-            // Get data from external service
+            if (!long.TryParse(clientId, out var clientIdLong))
+            {
+                throw new ArgumentException("Invalid clientId format", nameof(clientId));
+            }
+
+            // Get data from external service or database
             var products = await _externalDataService.GetProductsAsync(clientId);
             var stockData = await _externalDataService.GetStockDataAsync(clientId);
             var orderHistory = await _externalDataService.GetOrderHistoryAsync(clientId);
@@ -45,14 +50,14 @@ public class AIAgentService : IAIAgentService
             // Get AI suggestion
             var aiResponse = await _geminiService.GeneratePromotionSuggestionAsync(prompt);
 
-            // Parse AI response (simplified - in production, you'd want robust parsing)
-            var suggestion = ParsePromotionSuggestion(clientId, aiResponse, products);
+            // Parse AI response and create promotion
+            var promotion = ParsePromotionSuggestion(clientIdLong, aiResponse, products);
 
             // Save to database
-            await _promotionRepository.AddAsync(suggestion);
+            await _promotionRepository.AddAsync(promotion);
 
-            _logger.LogInformation("Promotion Agent completed for client {ClientId}. Created suggestion {PromotionId}", 
-                clientId, suggestion.PromotionId);
+            _logger.LogInformation("Promotion Agent completed for client {ClientId}. Created promotion {PromotionId}", 
+                clientId, promotion.PromotionId);
         }
         catch (Exception ex)
         {
@@ -67,7 +72,12 @@ public class AIAgentService : IAIAgentService
         {
             _logger.LogInformation("Starting Replenishment Agent for client {ClientId}", clientId);
 
-            // Get data from external service
+            if (!long.TryParse(clientId, out var clientIdLong))
+            {
+                throw new ArgumentException("Invalid clientId format", nameof(clientId));
+            }
+
+            // Get data from external service or database
             var products = await _externalDataService.GetProductsAsync(clientId);
             var stockData = await _externalDataService.GetStockDataAsync(clientId);
             var orderHistory = await _externalDataService.GetOrderHistoryAsync(clientId);
@@ -78,14 +88,14 @@ public class AIAgentService : IAIAgentService
             // Get AI analysis
             var aiResponse = await _geminiService.AnalyzeInventoryAsync(inventoryData);
 
-            // Parse AI response
-            var suggestion = ParseOrderSuggestion(clientId, aiResponse, products, stockData);
+            // Parse AI response and create suggested order
+            var suggestedOrder = ParseOrderSuggestion(clientIdLong, aiResponse, products, stockData);
 
             // Save to database
-            await _orderRepository.AddAsync(suggestion);
+            await _orderRepository.AddAsync(suggestedOrder);
 
-            _logger.LogInformation("Replenishment Agent completed for client {ClientId}. Created suggestion {OrderId}", 
-                clientId, suggestion.SuggestedOrderId);
+            _logger.LogInformation("Replenishment Agent completed for client {ClientId}. Created suggested order {OrderId}", 
+                clientId, suggestedOrder.SuggestedOrderId);
         }
         catch (Exception ex)
         {
@@ -107,7 +117,7 @@ Stock Levels: {JsonSerializer.Serialize(stockData.Take(10))}
 Recent Sales: {JsonSerializer.Serialize(orderHistory.Take(20))}
 
 Task: Identify low-rotation products and suggest combo offers with high-rotation items.
-Return JSON with: justificationAI (string), expectedIncreasePercent (decimal), products (array with productId, role, discountPercent).
+Return JSON with: justificationAI (string), expectedIncreasePercent (decimal), products (array with productId, quantity, discountApplied).
 ";
     }
 
@@ -124,37 +134,42 @@ Return JSON with: justificationAI (string), expectedIncreasePercent (decimal), p
         });
     }
 
-    private PromotionSuggestion ParsePromotionSuggestion(
-        string clientId, 
+    private Promotion ParsePromotionSuggestion(
+        long clientId, 
         string aiResponse,
         List<Application.DTOs.External.ProductDto> products)
     {
         // Simple parsing (in production, use proper JSON parsing with error handling)
-        var suggestion = new PromotionSuggestion
+        var promotion = new Promotion
         {
-            PromotionId = Guid.NewGuid(),
             ClientId = clientId,
+            Name = "AI Generated Combo Promotion",
+            Description = "Combo promotion suggested by AI agent",
             JustificationAI = "AI-generated promotion suggestion based on inventory analysis",
             ExpectedIncreasePercent = 15.0m,
-            Status = SuggestionStatus.Draft,
-            Products = new List<PromotionProduct>
-            {
-                new PromotionProduct
-                {
-                    Id = Guid.NewGuid(),
-                    ProductId = products.FirstOrDefault()?.ProductId ?? "PROD001",
-                    ProductName = products.FirstOrDefault()?.Name ?? "Sample Product",
-                    DiscountPercent = 20.0m,
-                    Role = "primary"
-                }
-            }
+            Status = "Draft",
+            CreatedByAI = true,
+            PromotionProducts = new List<PromotionProduct>()
         };
 
-        return suggestion;
+        // Add sample products
+        var firstProduct = products.FirstOrDefault();
+        if (firstProduct != null)
+        {
+            promotion.PromotionProducts.Add(new PromotionProduct
+            {
+                ProductId = firstProduct.ProductId,
+                Quantity = 1,
+                IndividualPrice = firstProduct.Price,
+                DiscountApplied = firstProduct.Price * 0.20m // 20% discount
+            });
+        }
+
+        return promotion;
     }
 
-    private OrderSuggestion ParseOrderSuggestion(
-        string clientId,
+    private SuggestedOrder ParseOrderSuggestion(
+        long clientId,
         string aiResponse,
         List<Application.DTOs.External.ProductDto> products,
         List<Application.DTOs.External.StockDto> stockData)
@@ -162,33 +177,24 @@ Return JSON with: justificationAI (string), expectedIncreasePercent (decimal), p
         // Simple parsing (in production, use proper JSON parsing with error handling)
         var lowStockItems = stockData.Where(s => s.Quantity < s.ReorderPoint).ToList();
 
-        var suggestion = new OrderSuggestion
+        var suggestedOrder = new SuggestedOrder
         {
-            SuggestedOrderId = Guid.NewGuid(),
             ClientId = clientId,
-            Status = SuggestionStatus.Draft,
-            Items = lowStockItems.Select(stock =>
-            {
-                var product = products.FirstOrDefault(p => p.ProductId == stock.ProductId);
-                var neededQty = stock.ReorderPoint * 2 - stock.Quantity;
-
-                return new OrderItem
-                {
-                    Id = Guid.NewGuid(),
-                    ProductId = stock.ProductId,
-                    ProductName = stock.ProductName,
-                    SuggestedQuantity = Math.Max(neededQty, 10),
-                    CurrentStock = stock.Quantity,
-                    ReorderPoint = stock.ReorderPoint,
-                    UnitCost = product?.Cost ?? 0m,
-                    Justification = $"Stock below reorder point. Current: {stock.Quantity}, Reorder Point: {stock.ReorderPoint}"
-                };
-            }).ToList()
+            Status = 0, // Draft
+            SuggestedOrderItems = new List<SuggestedOrderItem>()
         };
 
-        suggestion.TotalEstimatedCost = suggestion.Items.Sum(i => i.UnitCost * i.SuggestedQuantity);
+        foreach (var stock in lowStockItems)
+        {
+            var neededQty = stock.ReorderPoint * 2 - stock.Quantity;
+            
+            suggestedOrder.SuggestedOrderItems.Add(new SuggestedOrderItem
+            {
+                ProductId = stock.ProductId,
+                Quantity = Math.Max(neededQty, 10)
+            });
+        }
 
-        return suggestion;
+        return suggestedOrder;
     }
 }
-

@@ -1,11 +1,11 @@
 namespace CabriThonAPI.Application.DTOs.External;
 
 /// <summary>
-/// DTOs for data coming from external systems (Repository 1)
+/// DTOs for data coming from external systems (Repository 1) or internal DB
 /// </summary>
 public class ProductDto
 {
-    public string ProductId { get; set; } = string.Empty;
+    public long ProductId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public decimal Price { get; set; }
@@ -14,7 +14,7 @@ public class ProductDto
 
 public class StockDto
 {
-    public string ProductId { get; set; } = string.Empty;
+    public long ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public int ReorderPoint { get; set; }
@@ -23,9 +23,9 @@ public class StockDto
 
 public class OrderHistoryDto
 {
-    public string OrderId { get; set; } = string.Empty;
+    public long OrderId { get; set; }
     public DateTime OrderDate { get; set; }
-    public string ProductId { get; set; } = string.Empty;
+    public long ProductId { get; set; }
     public int Quantity { get; set; }
     public decimal TotalAmount { get; set; }
 }

@@ -3,14 +3,14 @@ using CabriThonAPI.Domain.Entities;
 namespace CabriThonAPI.Domain.Interfaces;
 
 /// <summary>
-/// Repository interface for order suggestions
+/// Repository interface for suggested orders
 /// </summary>
-public interface IOrderSuggestionRepository
+public interface ISuggestedOrderRepository
 {
-    Task<IEnumerable<OrderSuggestion>> GetByClientIdAsync(string clientId, SuggestionStatus? status = null);
-    Task<OrderSuggestion?> GetByIdAsync(Guid suggestedOrderId);
-    Task<OrderSuggestion> AddAsync(OrderSuggestion order);
-    Task UpdateAsync(OrderSuggestion order);
-    Task DeleteAsync(Guid suggestedOrderId);
+    Task<IEnumerable<SuggestedOrder>> GetByClientIdAsync(long clientId, int? status = null);
+    Task<SuggestedOrder?> GetByIdAsync(long suggestedOrderId);
+    Task<SuggestedOrder> AddAsync(SuggestedOrder order);
+    Task UpdateAsync(SuggestedOrder order);
+    Task DeleteAsync(long suggestedOrderId);
 }
 
